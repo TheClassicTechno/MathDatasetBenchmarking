@@ -38,7 +38,7 @@ class BenchmarkConfig:
     def __post_init__(self):
         if self.min_token_budgets is None:
             # Adjusted token budgets for 3B model - smaller increments
-            self.min_token_budgets = [4096, 8192, 16384]
+            self.min_token_budgets = [8192, 16384]
 
 @dataclass
 class EvaluationResult:
@@ -455,7 +455,7 @@ def main():
     config = BenchmarkConfig(
         model_name="simplescaling/s1.1-3B",
         dataset_name="openai/gsm8k",
-        min_token_budgets=[4096, 8192, 16384],
+        min_token_budgets=[8192, 16384],
         max_samples=150,  # More samples for better 3B evaluation
         output_dir="s1_3b_gsm8k_results",
         max_tokens_thinking=16000,  # Reduced for 3B
@@ -492,7 +492,7 @@ def main():
         print(f"⚡ Most efficient: {most_efficient.accuracy:.3f} accuracy with {most_efficient.avg_thinking_tokens:.1f} avg tokens")
         print(f"🚀 Fastest: {fastest.avg_response_time:.2f}s avg time (min_tokens={fastest.min_tokens})")
         
-        print(f"\n Performance Range:")
+        print(f"\n📊 Performance Range:")
         print(f"   Accuracy: {min(r.accuracy for r in results):.3f} - {max(r.accuracy for r in results):.3f}")
         print(f"   Thinking tokens: {min(r.avg_thinking_tokens for r in results):.1f} - {max(r.avg_thinking_tokens for r in results):.1f}")
         print(f"   Response time: {min(r.avg_response_time for r in results):.2f}s - {max(r.avg_response_time for r in results):.2f}s")
@@ -501,7 +501,7 @@ def main():
         viable_results = [r for r in results if r.accuracy > 0.3]  # At least 30% accuracy
         if viable_results:
             optimal = max(viable_results, key=lambda x: x.accuracy / x.avg_thinking_tokens)
-            print(f"\n Recommended setting: min_tokens={optimal.min_tokens}")
+            print(f"\n🎯 Recommended setting: min_tokens={optimal.min_tokens}")
             print(f"   Balance of {optimal.accuracy:.3f} accuracy with {optimal.avg_thinking_tokens:.1f} avg tokens")
 
 if __name__ == "__main__":
