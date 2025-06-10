@@ -38,7 +38,7 @@ class BenchmarkConfig:
     def __post_init__(self):
         if self.min_token_budgets is None:
             # Adjusted token budgets for 3B model - smaller increments
-            self.min_token_budgets = [8192, 16384]
+            self.min_token_budgets = [500, 1000, 2000, 4096, 8192]
 
 @dataclass
 class EvaluationResult:
@@ -455,7 +455,7 @@ def main():
     config = BenchmarkConfig(
         model_name="simplescaling/s1.1-3B",
         dataset_name="openai/gsm8k",
-        min_token_budgets=[8192, 16384],
+        min_token_budgets=[500, 1000, 2000, 4096, 8192],
         max_samples=150,  # More samples for better 3B evaluation
         output_dir="s1_3b_gsm8k_results",
         max_tokens_thinking=16000,  # Reduced for 3B
