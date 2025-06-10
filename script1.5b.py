@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Stanford S1.1-1.5B 
 """
@@ -57,7 +56,8 @@ class GSM8KAnswerParser:
     @staticmethod
     def extract_answer(text: str) -> Optional[float]:
         """Extract numerical answer from model response - enhanced for 1.5B model"""
-        # Look for patterns like "The answer is X" or "#### X" (GSM8K format)
+    
+        
         patterns = [
             r"####\s*([+-]?\d+(?:\.\d+)?)",  # GSM8K format: #### 42
             r"(?:the answer is|answer:|final answer:?)\s*([+-]?\d+(?:\.\d+)?)",  # Natural language
@@ -74,16 +74,16 @@ class GSM8KAnswerParser:
             matches = re.findall(pattern, text_lower, re.IGNORECASE)
             if matches:
                 try:
-                    return float(matches[-1])  # Return the last match
+                    return float(matches[-1]) 
                 except ValueError:
                     continue
         
-        # More aggressive fallback for 1.5B model: extract last number in the text
+       
         numbers = re.findall(r'([+-]?\d+(?:\.\d+)?)', text)
         if numbers:
             try:
-                # Try the last few numbers in case the final answer is not the very last
-                for num in reversed(numbers[-5:]):  # Check more numbers for 1.5B
+             
+                for num in reversed(numbers[-5:]):  
                     try:
                         return float(num)
                     except ValueError:
@@ -96,7 +96,7 @@ class GSM8KAnswerParser:
     @staticmethod
     def extract_ground_truth(answer_text: str) -> Optional[float]:
         """Extract ground truth answer from GSM8K format"""
-        # GSM8K answers are typically in format "#### NUMBER"
+      
         match = re.search(r"####\s*([+-]?\d+(?:\.\d+)?)", answer_text)
         if match:
             try:
@@ -104,7 +104,7 @@ class GSM8KAnswerParser:
             except ValueError:
                 pass
         
-        # Fallback to last number
+    
         numbers = re.findall(r'([+-]?\d+(?:\.\d+)?)', answer_text)
         if numbers:
             try:
@@ -134,10 +134,10 @@ class S1BudgetForcer:
         """Generate response with budget forcing - enhanced for 1.5B model"""
         start_time = time.time()
         
-        # Format the initial prompt
+      
         prompt = self.format_prompt(question)
         
-        # Start thinking phase
+       
         prompt += "<|im_start|>think\nLet me work through this step by step:\n"
         
         # Set up sampling parameters for thinking phase
@@ -158,7 +158,7 @@ class S1BudgetForcer:
         # Add thinking output to prompt
         prompt += thinking_output.text
         
-        # Handle ignore stops (budget forcing technique) - more aggressive for 1.5B
+      
         ignore_phrases = [
             "Wait, let me reconsider this...", 
             "Actually, let me double-check my work:", 
@@ -169,15 +169,16 @@ class S1BudgetForcer:
         max_tokens_thinking_remaining = self.config.max_tokens_thinking - thinking_tokens
         
         for i in range(self.config.num_ignore_stops):
-            if max_tokens_thinking_remaining > 50:  # Ensure some tokens remain
+            if max_tokens_thinking_remaining > 50:  
                 ignore_str = ignore_phrases[i % len(ignore_phrases)]
                 prompt += f"\n{ignore_str}\n"
                 
-                # Continue thinking with remaining budget
-                continue_tokens_target = min(200, max_tokens_thinking_remaining // 2)  # Smaller chunks for 1.5B
+             
+                
+                continue_tokens_target = min(200, max_tokens_thinking_remaining // 2)  
                 continue_sampling_params = SamplingParams(
                     max_tokens=max_tokens_thinking_remaining,
-                    min_tokens=min(25, continue_tokens_target),  # Smaller minimum for 1.5B
+                    min_tokens=min(25, continue_tokens_target), 
                     stop_token_ids=think_stop_token_ids,
                     skip_special_tokens=False,
                     temperature=self.config.temperature,
@@ -191,13 +192,13 @@ class S1BudgetForcer:
                 thinking_tokens += continue_tokens
                 max_tokens_thinking_remaining -= continue_tokens
         
-        # Add explicit transition to final answer
+      
         prompt += "\n<|im_end|>\n<|im_start|>assistant\nBased on my reasoning above, the final answer is: "
         
-        # Generate final answer
+      
         final_stop_token_ids = self.tokenizer("<|im_end|>")["input_ids"]
         final_sampling_params = SamplingParams(
-            max_tokens=1024,  # Reduced for 1.5B model
+            max_tokens=1024,  
             min_tokens=5,
             stop_token_ids=final_stop_token_ids,
             skip_special_tokens=False,
@@ -208,7 +209,7 @@ class S1BudgetForcer:
         final_output = outputs[0].outputs[0]
         final_tokens = len(final_output.token_ids)
         
-        # Complete response
+       
         full_response = prompt + final_output.text
         total_tokens = thinking_tokens + final_tokens
         response_time = time.time() - start_time
@@ -229,25 +230,25 @@ class GSM8KBenchmarker:
         self.config = config
         self.parser = GSM8KAnswerParser()
         
-        # Create output directory
+      
         os.makedirs(config.output_dir, exist_ok=True)
         
-        # Load model and tokenizer with 1.5B-optimized settings
+       
         print(f"Loading model: {config.model_name}")
         self.model = LLM(
             config.model_name,
-            tensor_parallel_size=1,  # 1.5B model fits on single GPU
-            gpu_memory_utilization=0.90,  # Can be more aggressive with smaller model
-            max_model_len=16384,  # Reduced for 1.5B
-            dtype="auto",  # Let vLLM choose optimal dtype
-            trust_remote_code=True,  # May be needed for some models
+            tensor_parallel_size=1, 
+            gpu_memory_utilization=0.90,  
+            max_model_len=16384, 
+            dtype="auto", 
+            trust_remote_code=True, 
         )
         self.tokenizer = AutoTokenizer.from_pretrained(config.model_name, trust_remote_code=True)
         
-        # Initialize budget forcer
+      
         self.budget_forcer = S1BudgetForcer(self.model, self.tokenizer, config)
         
-        # Load dataset
+     
         print("Loading GSM8K dataset...")
         self.dataset = load_dataset(config.dataset_name, "main")["test"]
         if config.max_samples:
@@ -269,7 +270,7 @@ class GSM8KBenchmarker:
             question = sample["question"]
             ground_truth_text = sample["answer"]
             
-            # Extract ground truth answer
+        
             ground_truth = self.parser.extract_ground_truth(ground_truth_text)
             if ground_truth is None:
                 print(f"Warning: Could not parse ground truth for sample {i}")
@@ -284,17 +285,17 @@ class GSM8KBenchmarker:
                 # Parse model answer
                 predicted_answer = self.parser.extract_answer(generation_result["final_answer_text"])
                 
-                # Very lenient comparison for 1.5B model
+           
                 is_correct = False
                 if predicted_answer is not None and ground_truth is not None:
-                    # Allow for small floating point differences and rounding
+                 
                     if abs(predicted_answer - ground_truth) < 1e-6:
                         is_correct = True
                     elif abs(predicted_answer - round(ground_truth)) < 1e-6:
                         is_correct = True
                     elif abs(round(predicted_answer) - ground_truth) < 1e-6:
                         is_correct = True
-                    # Additional leniency for percentage/decimal issues
+                 
                     elif abs(predicted_answer - ground_truth/100) < 1e-6:
                         is_correct = True
                     elif abs(predicted_answer*100 - ground_truth) < 1e-6:
@@ -303,12 +304,12 @@ class GSM8KBenchmarker:
                 if is_correct:
                     correct_count += 1
                 
-                # Accumulate statistics
+             
                 total_thinking_tokens += generation_result["thinking_tokens"]
                 total_tokens += generation_result["total_tokens"]
                 total_time += generation_result["response_time"]
                 
-                # Store detailed result
+              
                 result_detail = {
                     "sample_idx": i,
                     "question": question,
@@ -322,7 +323,7 @@ class GSM8KBenchmarker:
                 }
                 results.append(result_detail)
                 
-                # Print progress every 20 samples for smaller model
+     
                 if (i + 1) % 20 == 0:
                     current_accuracy = correct_count / len(results)
                     print(f"  Progress: {i+1}/{len(self.dataset)} | Current accuracy: {current_accuracy:.3f}")
@@ -331,7 +332,7 @@ class GSM8KBenchmarker:
                 print(f"Error processing sample {i}: {e}")
                 continue
         
-        # Calculate metrics
+    
         total_samples = len(results)
         accuracy = correct_count / total_samples if total_samples > 0 else 0
         avg_thinking_tokens = total_thinking_tokens / total_samples if total_samples > 0 else 0
@@ -359,10 +360,10 @@ class GSM8KBenchmarker:
             result = self.evaluate_single_budget(min_tokens)
             all_results.append(result)
             
-            # Save intermediate results
+         
             self.save_results(all_results)
             
-            # Print summary
+        
             print(f"\nRESULTS for min_tokens={min_tokens}:")
             print(f"  Accuracy: {result.accuracy:.3f} ({result.correct_answers}/{result.total_questions})")
             print(f"  Avg thinking tokens: {result.avg_thinking_tokens:.1f}")
@@ -376,7 +377,7 @@ class GSM8KBenchmarker:
     
     def save_results(self, results: List[EvaluationResult]):
         """Save results to files"""
-        # Save summary results
+    
         summary_data = []
         for result in results:
             token_efficiency = result.accuracy / result.avg_thinking_tokens * 1000 if result.avg_thinking_tokens > 0 else 0
@@ -396,7 +397,7 @@ class GSM8KBenchmarker:
         summary_file = os.path.join(self.config.output_dir, "s1_1_5b_benchmark_summary.csv")
         summary_df.to_csv(summary_file, index=False)
         
-        # Save detailed results
+      
         detailed_file = os.path.join(self.config.output_dir, "s1_1_5b_detailed_results.json")
         with open(detailed_file, 'w') as f:
             json.dump([result.__dict__ for result in results], f, indent=2, default=str)
@@ -411,20 +412,19 @@ class GSM8KBenchmarker:
         avg_response_times = [r.avg_response_time for r in results]
         token_efficiency = [r.accuracy / r.avg_thinking_tokens * 1000 if r.avg_thinking_tokens > 0 else 0 for r in results]
         
-        # Set up the plotting style
+      
         plt.style.use('seaborn-v0_8')
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
         
-        # Accuracy vs Min Tokens
+      
         ax1.plot(min_tokens, accuracies, 'b-o', linewidth=3, markersize=8, label='S1.1-1.5B')
         ax1.set_xlabel('Minimum Thinking Tokens', fontsize=12)
         ax1.set_ylabel('Accuracy', fontsize=12)
         ax1.set_title('GSM8K Accuracy vs Token Budget (S1.1-1.5B)', fontsize=14, fontweight='bold')
         ax1.grid(True, alpha=0.3)
         ax1.legend()
-        ax1.set_xscale('log')  # Log scale for better visualization of smaller token ranges
-        
-        # Thinking Tokens vs Min Tokens
+        ax1.set_xscale('log') 
+ 
         ax2.plot(min_tokens, avg_thinking_tokens, 'g-s', linewidth=3, markersize=8, label='Actual Usage')
         ax2.plot(min_tokens, min_tokens, 'r--', linewidth=2, alpha=0.7, label='Budget Limit')
         ax2.set_xlabel('Minimum Thinking Tokens', fontsize=12)
@@ -435,7 +435,7 @@ class GSM8KBenchmarker:
         ax2.set_xscale('log')
         ax2.set_yscale('log')
         
-        # Response Time vs Min Tokens
+    
         ax3.plot(min_tokens, avg_response_times, 'r-^', linewidth=3, markersize=8)
         ax3.set_xlabel('Minimum Thinking Tokens', fontsize=12)
         ax3.set_ylabel('Average Response Time (s)', fontsize=12)
@@ -443,7 +443,7 @@ class GSM8KBenchmarker:
         ax3.grid(True, alpha=0.3)
         ax3.set_xscale('log')
         
-        # Token Efficiency
+    
         ax4.plot(min_tokens, token_efficiency, 'm-d', linewidth=3, markersize=8)
         ax4.set_xlabel('Minimum Thinking Tokens', fontsize=12)
         ax4.set_ylabel('Accuracy per 1K Thinking Tokens', fontsize=12)
@@ -458,7 +458,7 @@ class GSM8KBenchmarker:
         
         print(f"S1.1-1.5B visualization saved to {viz_file}")
         
-        # Create comparison table
+    
         print("\n" + "="*80)
         print("S1.1-1.5B MODEL PERFORMANCE BREAKDOWN")
         print("="*80)
@@ -471,15 +471,15 @@ class GSM8KBenchmarker:
                   f"{result.avg_response_time:>10.2f}")
 
 def main():
-    """Main execution function for S1.1-1.5B benchmarking"""
-    # Configuration optimized for 1.5B model
+  
+
     config = BenchmarkConfig(
         model_name="simplescaling/s1.1-1.5B",
         dataset_name="openai/gsm8k",
         min_token_budgets=[500, 1000, 2000, 4096, 8192],
-        max_samples=200,  # More samples for better 1.5B evaluation
+        max_samples=200,  
         output_dir="s1_1_5b_gsm8k_results",
-        max_tokens_thinking=12000,  # Reduced for 1.5B
+        max_tokens_thinking=12000,  
         num_ignore_stops=3
     )
     
@@ -492,14 +492,14 @@ def main():
     print(f"Token budgets: {config.min_token_budgets}")
     print("="*60)
     
-    # Run benchmark
+ 
     benchmarker = GSM8KBenchmarker(config)
     results = benchmarker.run_full_benchmark()
     
-    # Create visualizations
+   
     benchmarker.create_visualizations(results)
     
-    # Print final summary
+   
     print("\n" + "="*80)
     print("FINAL S1.1-1.5B BENCHMARK SUMMARY")
     print("="*80)
@@ -518,8 +518,8 @@ def main():
         print(f"   Thinking tokens: {min(r.avg_thinking_tokens for r in results):.1f} - {max(r.avg_thinking_tokens for r in results):.1f}")
         print(f"   Response time: {min(r.avg_response_time for r in results):.2f}s - {max(r.avg_response_time for r in results):.2f}s")
         
-        # Find optimal operating point (best accuracy/token ratio above 20% accuracy for 1.5B)
-        viable_results = [r for r in results if r.accuracy > 0.20]  # At least 20% accuracy for 1.5B
+      
+        viable_results = [r for r in results if r.accuracy > 0.20] 
         if viable_results:
             optimal = max(viable_results, key=lambda x: x.accuracy / x.avg_thinking_tokens if x.avg_thinking_tokens > 0 else 0)
             print(f"\n Recommended setting: min_tokens={optimal.min_tokens}")
