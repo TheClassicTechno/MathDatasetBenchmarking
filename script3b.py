@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Stanford S1.1-3B Model Benchmarking on GSM8K with Token Budget Forcing
-This script evaluates the S1.1-3B model on GSM8K dataset with different token budgets.
-Optimized for smaller model with adjusted parameters and resource usage.
+Stanford S1.1-3B 
 """
 
 import os
@@ -15,7 +13,6 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
-# External dependencies
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 from datasets import load_dataset
@@ -28,16 +25,16 @@ class BenchmarkConfig:
     model_name: str = "simplescaling/s1.1-3B"
     dataset_name: str = "openai/gsm8k"
     max_tokens_total: int = 32768
-    max_tokens_thinking: int = 16000  # Reduced for 3B model
-    num_ignore_stops: int = 2  # Slightly more aggressive for smaller model
+    max_tokens_thinking: int = 16000  
+    num_ignore_stops: int = 2 
     temperature: float = 0.0
     min_token_budgets: List[int] = None
-    max_samples: int = 150  # Slightly more samples for 3B model evaluation
+    max_samples: int = 150  
     output_dir: str = "s1_3b_gsm8k_results"
     
     def __post_init__(self):
         if self.min_token_budgets is None:
-            # Adjusted token budgets for 3B model - smaller increments
+         
             self.min_token_budgets = [500, 1000, 2000, 4096, 8192]
 
 @dataclass
@@ -59,7 +56,7 @@ class GSM8KAnswerParser:
     @staticmethod
     def extract_answer(text: str) -> Optional[float]:
         """Extract numerical answer from model response"""
-        # Look for patterns like "The answer is X" or "#### X" (GSM8K format)
+       
         patterns = [
             r"####\s*([+-]?\d+(?:\.\d+)?)",  # GSM8K format: #### 42
             r"(?:the answer is|answer:|final answer:?)\s*([+-]?\d+(?:\.\d+)?)",  # Natural language
@@ -74,7 +71,7 @@ class GSM8KAnswerParser:
             matches = re.findall(pattern, text_lower, re.IGNORECASE)
             if matches:
                 try:
-                    return float(matches[-1])  # Return the last match
+                    return float(matches[-1]) 
                 except ValueError:
                     continue
         
@@ -82,7 +79,7 @@ class GSM8KAnswerParser:
         numbers = re.findall(r'([+-]?\d+(?:\.\d+)?)', text)
         if numbers:
             try:
-                # Try the last few numbers in case the final answer is not the very last
+              
                 for num in reversed(numbers[-3:]):
                     try:
                         return float(num)
@@ -488,11 +485,11 @@ def main():
         most_efficient = max(results, key=lambda x: x.accuracy / x.avg_thinking_tokens)
         fastest = min(results, key=lambda x: x.avg_response_time)
         
-        print(f"🏆 Best accuracy: {best_accuracy.accuracy:.3f} (min_tokens={best_accuracy.min_tokens})")
-        print(f"⚡ Most efficient: {most_efficient.accuracy:.3f} accuracy with {most_efficient.avg_thinking_tokens:.1f} avg tokens")
-        print(f"🚀 Fastest: {fastest.avg_response_time:.2f}s avg time (min_tokens={fastest.min_tokens})")
+        print(f" Best accuracy: {best_accuracy.accuracy:.3f} (min_tokens={best_accuracy.min_tokens})")
+        print(f" Most efficient: {most_efficient.accuracy:.3f} accuracy with {most_efficient.avg_thinking_tokens:.1f} avg tokens")
+        print(f" Fastest: {fastest.avg_response_time:.2f}s avg time (min_tokens={fastest.min_tokens})")
         
-        print(f"\n📊 Performance Range:")
+        print(f"\n Performance Range:")
         print(f"   Accuracy: {min(r.accuracy for r in results):.3f} - {max(r.accuracy for r in results):.3f}")
         print(f"   Thinking tokens: {min(r.avg_thinking_tokens for r in results):.1f} - {max(r.avg_thinking_tokens for r in results):.1f}")
         print(f"   Response time: {min(r.avg_response_time for r in results):.2f}s - {max(r.avg_response_time for r in results):.2f}s")
@@ -501,7 +498,7 @@ def main():
         viable_results = [r for r in results if r.accuracy > 0.3]  # At least 30% accuracy
         if viable_results:
             optimal = max(viable_results, key=lambda x: x.accuracy / x.avg_thinking_tokens)
-            print(f"\n🎯 Recommended setting: min_tokens={optimal.min_tokens}")
+            print(f"\n Recommended setting: min_tokens={optimal.min_tokens}")
             print(f"   Balance of {optimal.accuracy:.3f} accuracy with {optimal.avg_thinking_tokens:.1f} avg tokens")
 
 if __name__ == "__main__":
