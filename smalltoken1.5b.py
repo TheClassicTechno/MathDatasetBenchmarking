@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
 Stanford S1.1-1.5B Model Benchmarking on GSM8K with Very Small Token Budgets
-This script evaluates the S1.1-1.5B model on GSM8K dataset with extremely small token budgets.
-Focus on testing the model's ability to reason with minimal thinking tokens.
 """
 
 import os
@@ -15,7 +13,7 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
-# External dependencies
+
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 from datasets import load_dataset
@@ -27,17 +25,17 @@ class BenchmarkConfig:
     """Configuration for small token budget benchmarking experiment"""
     model_name: str = "simplescaling/s1.1-1.5B"
     dataset_name: str = "openai/gsm8k"
-    max_tokens_total: int = 8192  # Reduced for small budget focus
-    max_tokens_thinking: int = 2048  # Much smaller max for small budget testing
-    num_ignore_stops: int = 1  # Minimal for small budgets
+    max_tokens_total: int = 8192 
+    max_tokens_thinking: int = 2048  
+    num_ignore_stops: int = 1  
     temperature: float = 0.0
     min_token_budgets: List[int] = None
-    max_samples: int = 100  # Smaller sample size for quick iteration on small budgets
+    max_samples: int = 100  
     output_dir: str = "s1_1_5b_small_budget_results"
     
     def __post_init__(self):
         if self.min_token_budgets is None:
-            # Very small token budgets - testing extreme constraint scenarios
+          
             self.min_token_budgets = [64, 128, 256, 384, 512]
 
 @dataclass
@@ -205,7 +203,7 @@ class S1SmallBudgetForcer:
                 prompt += continue_output.text
                 thinking_tokens += continue_tokens
         
-        # Add transition to final answer - simplified for small budgets
+     
         if min_thinking_tokens <= 128:
             prompt += "\n<|im_end|>\n<|im_start|>assistant\nAnswer: "
         else:
@@ -385,15 +383,15 @@ class GSM8KSmallBudgetBenchmarker:
             
             # Print summary
             print(f"\nSMALL BUDGET RESULTS for min_tokens={min_tokens}:")
-            print(f"  🎯 Accuracy: {result.accuracy:.3f} ({result.correct_answers}/{result.total_questions})")
-            print(f"  🧠 Avg thinking tokens: {result.avg_thinking_tokens:.1f}")
-            print(f"  💬 Avg total tokens: {result.avg_total_tokens:.1f}")
-            print(f"  ⏱️  Avg response time: {result.avg_response_time:.2f}s")
+            print(f"   Accuracy: {result.accuracy:.3f} ({result.correct_answers}/{result.total_questions})")
+            print(f"   Avg thinking tokens: {result.avg_thinking_tokens:.1f}")
+            print(f"   Avg total tokens: {result.avg_total_tokens:.1f}")
+            print(f"  ⏱  Avg response time: {result.avg_response_time:.2f}s")
             if result.avg_thinking_tokens > 0:
                 efficiency = result.accuracy / result.avg_thinking_tokens * 100
-                print(f"  ⚡ Token efficiency: {efficiency:.2f} (acc per 100 tokens)")
+                print(f"   Token efficiency: {efficiency:.2f} (acc per 100 tokens)")
                 budget_utilization = result.avg_thinking_tokens / min_tokens
-                print(f"  📊 Budget utilization: {budget_utilization:.2f}x")
+                print(f"   Budget utilization: {budget_utilization:.2f}x")
             print("-" * 70)
         
         return all_results
@@ -515,11 +513,11 @@ def main():
     print("="*70)
     print("STANFORD S1.1-1.5B SMALL BUDGET GSM8K BENCHMARK")
     print("="*70)
-    print(f"🤖 Model: {config.model_name}")
-    print(f"📊 Dataset: {config.dataset_name}")
-    print(f"📈 Sample size: {config.max_samples}")
-    print(f"🔢 Small token budgets: {config.min_token_budgets}")
-    print(f"🎯 Focus: Extreme constraint performance")
+    print(f" Model: {config.model_name}")
+    print(f" Dataset: {config.dataset_name}")
+    print(f" Sample size: {config.max_samples}")
+    print(f" Small token budgets: {config.min_token_budgets}")
+    print(f" Focus: Extreme constraint performance")
     print("="*70)
     
     # Run benchmark
@@ -539,37 +537,37 @@ def main():
         most_efficient = max(results, key=lambda x: x.accuracy / x.avg_thinking_tokens if x.avg_thinking_tokens > 0 else 0)
         fastest = min(results, key=lambda x: x.avg_response_time)
         
-        print(f"🏆 Best small budget accuracy: {best_accuracy.accuracy:.3f} ({best_accuracy.min_tokens} tokens)")
-        print(f"⚡ Most efficient: {most_efficient.accuracy:.3f} accuracy @ {most_efficient.min_tokens} tokens")
-        print(f"🚀 Fastest: {fastest.avg_response_time:.2f}s ({fastest.min_tokens} tokens)")
+        print(f" Best small budget accuracy: {best_accuracy.accuracy:.3f} ({best_accuracy.min_tokens} tokens)")
+        print(f" Most efficient: {most_efficient.accuracy:.3f} accuracy @ {most_efficient.min_tokens} tokens")
+        print(f" Fastest: {fastest.avg_response_time:.2f}s ({fastest.min_tokens} tokens)")
         
-        print(f"\n📊 Small Budget Performance Range:")
-        print(f"   🎯 Accuracy: {min(r.accuracy for r in results):.3f} - {max(r.accuracy for r in results):.3f}")
-        print(f"   🧠 Avg thinking: {min(r.avg_thinking_tokens for r in results):.1f} - {max(r.avg_thinking_tokens for r in results):.1f}")
-        print(f"   ⏱️  Response time: {min(r.avg_response_time for r in results):.2f}s - {max(r.avg_response_time for r in results):.2f}s")
+        print(f"\n Small Budget Performance Range:")
+        print(f"    Accuracy: {min(r.accuracy for r in results):.3f} - {max(r.accuracy for r in results):.3f}")
+        print(f"    Avg thinking: {min(r.avg_thinking_tokens for r in results):.1f} - {max(r.avg_thinking_tokens for r in results):.1f}")
+        print(f"   ⏱  Response time: {min(r.avg_response_time for r in results):.2f}s - {max(r.avg_response_time for r in results):.2f}s")
         
         # Analyze small budget effectiveness
-        print(f"\n🔍 Small Budget Analysis:")
+        print(f"\n Small Budget Analysis:")
         min_budget = min(results, key=lambda x: x.min_tokens)
         max_budget = max(results, key=lambda x: x.min_tokens)
         
         accuracy_gain = max_budget.accuracy - min_budget.accuracy
         token_cost = max_budget.avg_thinking_tokens - min_budget.avg_thinking_tokens
         
-        print(f"   📈 Accuracy gain (64→512 tokens): {accuracy_gain:.3f}")
-        print(f"   💰 Token cost for gain: {token_cost:.1f} tokens")
+        print(f"    Accuracy gain (64→512 tokens): {accuracy_gain:.3f}")
+        print(f"    Token cost for gain: {token_cost:.1f} tokens")
         if token_cost > 0:
-            print(f"   ⚡ Efficiency of scaling: {accuracy_gain/token_cost*100:.2f} acc/100 tokens")
+            print(f"    Efficiency of scaling: {accuracy_gain/token_cost*100:.2f} acc/100 tokens")
         
         # Find sweet spot
         viable_results = [r for r in results if r.accuracy > 0.05]  # At least 5% for small budgets
         if viable_results:
             sweet_spot = max(viable_results, key=lambda x: x.accuracy / x.avg_thinking_tokens)
-            print(f"\n🎯 Small Budget Sweet Spot: {sweet_spot.min_tokens} tokens")
-            print(f"   📊 Achieves {sweet_spot.accuracy:.3f} accuracy with {sweet_spot.avg_thinking_tokens:.1f} avg tokens")
-            print(f"   ⚡ Efficiency: {sweet_spot.accuracy/sweet_spot.avg_thinking_tokens*100:.2f} acc/100 tokens")
+            print(f"\n Small Budget Sweet Spot: {sweet_spot.min_tokens} tokens")
+            print(f"    Achieves {sweet_spot.accuracy:.3f} accuracy with {sweet_spot.avg_thinking_tokens:.1f} avg tokens")
+            print(f"    Efficiency: {sweet_spot.accuracy/sweet_spot.avg_thinking_tokens*100:.2f} acc/100 tokens")
         
-        print(f"\n💡 Insights:")
+        print(f"\n Insights:")
         print(f"   • Small budgets test the model's ability to compress reasoning")
         print(f"   • Even with 64 tokens, the 1.5B model attempts structured problem-solving")
         print(f"   • Budget utilization shows how well the model uses available thinking space")
